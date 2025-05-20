@@ -12,8 +12,39 @@ let g:loaded_testnav = 1
 "  map <unique> <Leader>tn <Plug>TestNav;
 "endif
 
+let s:found_lookups = {}
+
+function s:TestNavEmptyCache()
+  let l:s = "Removed " . len(s:found_lookups) . " cached lookups"
+  call empty(s:found_lookups)
+  echo l:s
+endfunction
+
+function s:TestNavViewCache()
+  let l:printed = []
+  for k in keys(s:found_lookups)
+    if index(l:printed, k) == -1
+      let v = s:found_lookups[k]
+      echo k
+      echo " <-> " . v
+      call add(l:printed, v)
+    endif
+  endfor
+endfunction
+
 function s:TestNav()
   let l:buf_name = nvim_buf_get_name(0)
+
+  if has_key(s:found_lookups, l:buf_name)
+    let l:lookup = s:found_lookups[l:buf_name]
+    if filereadable(lookup)
+      execute "edit " . lookup
+      return
+    else
+      call remove(s:found_lookups, l:buf_name)
+      call remove(s:found_lookups, lookup)
+    endif
+  endif
 
   if s:TryLookups(s:JS(l:buf_name)) == 1
     return
@@ -26,6 +57,9 @@ function s:TryLookups(lookups)
   if !empty(a:lookups)
     for lookup in a:lookups
       if filereadable(lookup)
+        let l:buf_name = nvim_buf_get_name(0)
+        let s:found_lookups[l:buf_name] = lookup
+        let s:found_lookups[lookup] = l:buf_name
         execute "edit " . lookup
         return 1
       endif
@@ -77,4 +111,12 @@ endfunction
 
 if !exists(":TestNav")
   command -nargs=0 TestNav :call s:TestNav()
+endif
+
+if !exists(":TestNavEmptyCache")
+  command -nargs=0 TestNavEmptyCache :call s:TestNavEmptyCache()
+endif
+
+if !exists(":TestNavViewCache")
+  command -nargs=0 TestNavViewCache :call s:TestNavViewCache()
 endif
