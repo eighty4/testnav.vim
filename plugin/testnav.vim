@@ -1,5 +1,5 @@
 " Navigate between source under test and test files
-" Last Change:	2025-04-28
+" Last Change:	2025-09-01
 " Maintainer:	Adam McKee <adam.be.g84d@gmail.com>
 " Repository:   https://github.com/eighty4/testnav.vim
 
@@ -46,6 +46,10 @@ function s:TestNav()
     endif
   endif
 
+  if s:Rust(l:buf_name) == 1
+    return
+  endif
+
   if s:TryLookups(s:JS(l:buf_name)) == 1
     return
   endif
@@ -56,16 +60,35 @@ endfunction
 function s:TryLookups(lookups)
   if !empty(a:lookups)
     for lookup in a:lookups
-      if filereadable(lookup)
-        let l:buf_name = nvim_buf_get_name(0)
-        let s:found_lookups[l:buf_name] = lookup
-        let s:found_lookups[lookup] = l:buf_name
-        execute "edit " . lookup
+      if s:TryLookup(lookup) == 1
         return 1
       endif
     endfor
   endif
   return 0
+endfunction
+
+function s:TryLookup(lookup)
+  if filereadable(a:lookup)
+    let l:buf_name = nvim_buf_get_name(0)
+    let s:found_lookups[l:buf_name] = a:lookup
+    let s:found_lookups[a:lookup] = l:buf_name
+    execute "edit " . a:lookup
+    return 1
+  endif
+  return 0
+endfunction
+
+function s:Rust(buf_name)
+  if a:buf_name=~".rs$"
+  else
+    return v:null
+  endif
+  if a:buf_name=~".test.rs$"
+    return s:TryLookup(substitute(a:buf_name, "_test\.rs$", ".rs", ""))
+  else
+    return s:TryLookup(substitute(a:buf_name, ".rs$", "_test\.rs", ""))
+  endif
 endfunction
 
 function s:JS(buf_name)
