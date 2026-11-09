@@ -129,7 +129,7 @@ function s:JS(buf_name)
 endfunction
 
 function s:MatrixBufName(buf_name, m, rn)
-  return map(a:rn, 'substitute(a:buf_name, a:m, v:val, "")')
+  return map(a:rn, 'substitute(a:buf_name, escape(a:m, ".") . "$", v:val, "")')
 endfunction
 
 if !exists(":TestNav")
